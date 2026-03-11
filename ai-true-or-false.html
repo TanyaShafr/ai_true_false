@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Правда или Ложь — ИИ</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&family=Nunito+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #e8f4fd;
+    --card: rgba(255,255,255,0.75);
+    --accent1: #1a8fe3;
+    --accent2: #0b5ea8;
+    --accent3: #5bc4f5;
+    --true-color: #0f7a3e;
+    --true-bg: #e6f9ef;
+    --false-color: #c0392b;
+    --false-bg: #fdecea;
+    --text: #0c2340;
+    --sub: #4a78a8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  @keyframes gradShift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  body {
+    font-family: 'Nunito Sans', sans-serif;
+    background:
+      radial-gradient(ellipse at 10% 10%, rgba(186,230,255,0.85) 0%, transparent 50%),
+      radial-gradient(ellipse at 90% 15%, rgba(147,210,255,0.7) 0%, transparent 45%),
+      radial-gradient(ellipse at 80% 85%, rgba(200,240,255,0.8) 0%, transparent 50%),
+      radial-gradient(ellipse at 20% 80%, rgba(164,220,250,0.75) 0%, transparent 45%),
+      radial-gradient(ellipse at 50% 45%, rgba(230,248,255,0.6) 0%, transparent 60%),
+      linear-gradient(135deg, #e0f4ff 0%, #b8e0fa 25%, #cce8f7 50%, #a8d8f2 75%, #d4eefb 100%);
+    background-size: 200% 200%;
+    animation: gradShift 10s ease infinite;
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Floating bubbles */
+  .stars {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  }
+  .star {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.95), rgba(173,216,255,0.2));
+    border: 1px solid rgba(255,255,255,0.7);
+    animation: twinkle var(--d) ease-in-out infinite alternate;
+    opacity: 0;
+  }
+  @keyframes twinkle {
+    from { opacity: 0; transform: scale(1) translateY(0); }
+    to   { opacity: 0.6; transform: scale(1.15) translateY(-5px); }
+  }
+
+  /* Floating blobs */
+  .blob {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(70px);
+    opacity: 0.5;
+    pointer-events: none;
+    animation: blobFloat 12s ease-in-out infinite alternate;
+  }
+  .blob1 { width: 550px; height: 550px; background: radial-gradient(circle, #7ec8f5, #b3e0ff); top: -180px; left: -140px; animation-duration: 13s; }
+  .blob2 { width: 450px; height: 450px; background: radial-gradient(circle, #a8d8f8, #cceeff); bottom: -120px; right: -120px; animation-duration: 9s; }
+  .blob3 { width: 350px; height: 350px; background: radial-gradient(circle, #fff9c4, #fffde7); top: 30%; left: 58%; animation-duration: 17s; opacity: 0.4; }
+  .blob4 { width: 280px; height: 280px; background: radial-gradient(circle, #c5e8ff, #e0f4ff); top: 55%; left: 5%; animation-duration: 11s; opacity: 0.45; }
+  @keyframes blobFloat {
+    from { transform: translate(0,0) scale(1); }
+    to   { transform: translate(30px, 40px) scale(1.08); }
+  }
+
+  /* Main container */
+  .game-wrap {
+    position: relative; z-index: 10;
+    width: min(700px, 96vw);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* ---- SCREEN: START ---- */
+  #screen-start {
+    text-align: center;
+    animation: fadeUp .7s ease both;
+  }
+  .robot-emoji { font-size: 96px; line-height: 1; display: block; animation: bounce 2s ease-in-out infinite; }
+  @keyframes bounce {
+    0%,100% { transform: translateY(0); }
+    50%      { transform: translateY(-14px); }
+  }
+  h1 {
+    font-family: 'Nunito', sans-serif;
+    font-size: clamp(2rem, 7vw, 3.6rem);
+    font-weight: 900;
+    line-height: 1.1;
+    margin: 20px 0 10px;
+    background: linear-gradient(120deg, #1565c0, #42a5f5, #0288d1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .subtitle {
+    font-size: 1.15rem;
+    color: var(--sub);
+    margin-bottom: 36px;
+    line-height: 1.5;
+  }
+  .btn-start {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    font-size: 1.4rem;
+    padding: 18px 56px;
+    border: none;
+    border-radius: 60px;
+    background: linear-gradient(135deg, #1976d2, #42a5f5);
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 8px 30px rgba(25,118,210,0.4);
+    transition: transform .15s, box-shadow .15s;
+    letter-spacing: .5px;
+  }
+  .btn-start:hover { transform: scale(1.06); box-shadow: 0 12px 40px rgba(25,118,210,0.55); }
+  .btn-start:active { transform: scale(.97); }
+
+  /* ---- SCREEN: QUESTION ---- */
+  #screen-question { display: none; width: 100%; }
+
+  .progress-bar-wrap {
+    width: 100%;
+    background: rgba(33,150,243,0.15);
+    border-radius: 20px;
+    height: 8px;
+    margin-bottom: 28px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 20px;
+    background: linear-gradient(90deg, var(--accent1), var(--accent2));
+    transition: width .5s cubic-bezier(.4,0,.2,1);
+  }
+
+  .q-counter {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    font-size: .95rem;
+    letter-spacing: 2px;
+    color: var(--sub);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  .question-card {
+    background: rgba(255,255,255,0.75);
+    backdrop-filter: blur(12px);
+    border: 1.5px solid rgba(255,255,255,0.9);
+    border-radius: 28px;
+    padding: 44px 40px 36px;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 12px 40px rgba(33,118,210,0.15), 0 2px 8px rgba(0,0,0,0.06);
+    animation: fadeUp .45s ease both;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(28px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .q-icon { font-size: 54px; margin-bottom: 18px; display: block; }
+
+  .question-text {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: clamp(1.2rem, 4vw, 1.65rem);
+    line-height: 1.4;
+    color: var(--text);
+  }
+
+  .answer-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 28px;
+    width: 100%;
+  }
+
+  .btn-answer {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    font-size: 1.35rem;
+    padding: 22px 10px;
+    border: 3px solid transparent;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s, background .2s;
+    letter-spacing: 1px;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-true {
+    background: rgba(21,101,192,0.08);
+    border-color: #1565c0;
+    color: #1565c0;
+  }
+  .btn-false {
+    background: rgba(229,57,53,0.08);
+    border-color: #e53935;
+    color: #e53935;
+  }
+  .btn-answer:hover:not(:disabled) { transform: scale(1.04); box-shadow: 0 8px 24px rgba(26,95,163,0.18); }
+  .btn-answer:active:not(:disabled) { transform: scale(.97); }
+  .btn-answer:disabled { cursor: default; }
+
+  .btn-answer.correct {
+    background: var(--true-color) !important;
+    color: #fff !important;
+    border-color: var(--true-color) !important;
+    box-shadow: 0 4px 20px rgba(15,122,62,0.3) !important;
+    transform: scale(1.06);
+  }
+  .btn-answer.wrong {
+    background: var(--false-color) !important;
+    color: #fff !important;
+    border-color: var(--false-color) !important;
+    opacity: 0.75;
+  }
+
+  /* Feedback panel */
+  .feedback {
+    width: 100%;
+    border-radius: 18px;
+    padding: 22px 28px;
+    margin-top: 18px;
+    display: none;
+    animation: fadeUp .35s ease both;
+    text-align: left;
+  }
+  .feedback.correct-fb { background: rgba(21,101,192,0.08); border: 1.5px solid rgba(21,101,192,0.25); }
+  .feedback.wrong-fb   { background: rgba(229,57,53,0.08); border: 1.5px solid rgba(229,57,53,0.25); }
+
+  .fb-header {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    font-size: 1.25rem;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .fb-text { color: var(--sub); font-size: 1rem; line-height: 1.55; }
+
+  .btn-next {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    font-size: 1.15rem;
+    padding: 16px 44px;
+    border: none;
+    border-radius: 50px;
+    background: linear-gradient(135deg, #1976d2, #42a5f5);
+    color: #fff;
+    cursor: pointer;
+    margin-top: 24px;
+    display: none;
+    box-shadow: 0 8px 24px rgba(25,118,210,0.35);
+    transition: transform .15s, box-shadow .15s;
+    align-self: center;
+  }
+  .btn-next:hover { transform: scale(1.05); box-shadow: 0 12px 36px rgba(25,118,210,0.5); }
+
+  /* ---- SCREEN: RESULT ---- */
+  #screen-result {
+    display: none;
+    text-align: center;
+    animation: fadeUp .6s ease both;
+  }
+  .result-emoji { font-size: 88px; display: block; animation: pop .5s cubic-bezier(.4,0,.2,1) both; }
+  @keyframes pop {
+    0%   { transform: scale(0.4); opacity:0; }
+    70%  { transform: scale(1.1); }
+    100% { transform: scale(1); opacity:1; }
+  }
+  .result-title {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    font-size: clamp(1.8rem, 6vw, 3rem);
+    margin: 18px 0 10px;
+    background: linear-gradient(120deg, #1565c0, #42a5f5);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .result-score {
+    font-size: 1.2rem;
+    color: var(--sub);
+    margin-bottom: 10px;
+  }
+  .score-big {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    font-size: clamp(3rem, 10vw, 5rem);
+    background: linear-gradient(135deg, #1565c0, #42a5f5);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: block;
+    margin: 8px 0 24px;
+  }
+  .result-msg {
+    font-size: 1.1rem;
+    color: var(--sub);
+    max-width: 400px;
+    margin: 0 auto 32px;
+    line-height: 1.6;
+  }
+  .btn-restart {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    font-size: 1.2rem;
+    padding: 16px 48px;
+    border: none;
+    border-radius: 50px;
+    background: linear-gradient(135deg, #1976d2, #64b5f6);
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 8px 28px rgba(25,118,210,0.35);
+    transition: transform .15s;
+  }
+  .btn-restart:hover { transform: scale(1.05); }
+
+  /* Confetti */
+  .confetti-piece {
+    position: fixed;
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 100;
+    animation: confettiFall var(--cd) ease-in var(--cd2) both;
+  }
+  @keyframes confettiFall {
+    0%   { transform: translateY(-20px) rotate(0deg); opacity:1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity:0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+<div class="blob blob1"></div>
+<div class="blob blob2"></div>
+<div class="blob blob3"></div>
+<div class="blob blob4"></div>
+
+<div class="game-wrap">
+
+  <!-- START SCREEN -->
+  <div id="screen-start">
+    <span class="robot-emoji">🤖</span>
+    <h1>Правда или Ложь?</h1>
+    <p class="subtitle">Всё об Искусственном Интеллекте.<br>Проверим, кто знает правду, а кто верит мифам!</p>
+    <button class="btn-start" onclick="startGame()">Начать игру ▶</button>
+  </div>
+
+  <!-- QUESTION SCREEN -->
+  <div id="screen-question">
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+    <div class="q-counter" id="q-counter">Вопрос 1 из 7</div>
+    <div class="question-card" id="question-card">
+      <span class="q-icon" id="q-icon">🧠</span>
+      <p class="question-text" id="question-text"></p>
+    </div>
+    <div class="answer-row">
+      <button class="btn-answer btn-true" id="btn-true" onclick="answer(true)">✅ ПРАВДА</button>
+      <button class="btn-answer btn-false" id="btn-false" onclick="answer(false)">❌ ЛОЖЬ</button>
+    </div>
+    <div class="feedback" id="feedback">
+      <div class="fb-header" id="fb-header"></div>
+      <p class="fb-text" id="fb-text"></p>
+    </div>
+    <button class="btn-next" id="btn-next" onclick="nextQuestion()">Следующий вопрос →</button>
+  </div>
+
+  <!-- RESULT SCREEN -->
+  <div id="screen-result">
+    <span class="result-emoji" id="result-emoji">🏆</span>
+    <h2 class="result-title" id="result-title">Отличный результат!</h2>
+    <p class="result-score">Правильных ответов:</p>
+    <span class="score-big" id="score-big">0 / 7</span>
+    <p class="result-msg" id="result-msg"></p>
+    <button class="btn-restart" onclick="restartGame()">🔄 Сыграть снова</button>
+  </div>
+
+</div>
+
+<script>
+const questions = [
+  {
+    icon: "🧠",
+    text: "Искусственный интеллект умеет думать и чувствовать, как человек.",
+    answer: false,
+    explanation: "ИИ обрабатывает данные и находит закономерности, но у него нет мыслей, эмоций или сознания. Он имитирует интеллект, но не обладает им по-настоящему."
+  },
+  {
+    icon: "📸",
+    text: "ИИ умеет распознавать лица на фотографиях.",
+    answer: true,
+    explanation: "Да! Распознавание лиц — одно из реальных применений ИИ. Смартфоны, камеры и приложения уже давно используют эту технологию."
+  },
+  {
+    icon: "🎵",
+    text: "ИИ может сочинять музыку.",
+    answer: true,
+    explanation: "Правда! Нейросети уже создают музыку, стихи и картины. Некоторые из них не отличить от работ человека!"
+  },
+  {
+    icon: "🚗",
+    text: "ИИ управляет некоторыми автомобилями без водителя.",
+    answer: true,
+    explanation: "Верно! Беспилотные автомобили, например Tesla Autopilot, используют ИИ для навигации, распознавания дороги и препятствий."
+  },
+  {
+    icon: "🌙",
+    text: "ИИ никогда не ошибается — машины всегда точнее людей.",
+    answer: false,
+    explanation: "Это миф! ИИ делает ошибки, особенно если обучался на неправильных данных. Поэтому человек всегда должен проверять результат."
+  },
+  {
+    icon: "💬",
+    text: "Голосовые помощники — Алиса, Siri, Google — используют ИИ.",
+    answer: true,
+    explanation: "Именно! Они распознают твой голос, понимают вопросы и подбирают ответы — всё это благодаря искусственному интеллекту."
+  },
+  {
+    icon: "👾",
+    text: "ИИ был изобретён только в 2020-х годах.",
+    answer: false,
+    explanation: "Нет, идее ИИ уже больше 70 лет! Первые исследования начались в 1950-х. Просто раньше компьютеры были слабее, чем сейчас."
+  }
+];
+
+let current = 0;
+let score = 0;
+let answered = false;
+
+function makeStars() {
+  const c = document.getElementById('stars');
+  for (let i = 0; i < 120; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const size = Math.random() * 2.5 + 0.5;
+    s.style.cssText = `width:${size}px;height:${size}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--d:${(Math.random()*3+1.5).toFixed(1)}s;animation-delay:${(Math.random()*4).toFixed(1)}s`;
+    c.appendChild(s);
+  }
+}
+makeStars();
+
+function startGame() {
+  document.getElementById('screen-start').style.display = 'none';
+  document.getElementById('screen-question').style.display = 'block';
+  current = 0; score = 0;
+  loadQuestion();
+}
+
+function loadQuestion() {
+  answered = false;
+  const q = questions[current];
+  document.getElementById('q-counter').textContent = `Вопрос ${current+1} из ${questions.length}`;
+  document.getElementById('progress-fill').style.width = `${(current/questions.length)*100}%`;
+  document.getElementById('q-icon').textContent = q.icon;
+  document.getElementById('question-text').textContent = q.text;
+
+  // reset
+  document.getElementById('question-card').style.animation = 'none';
+  void document.getElementById('question-card').offsetWidth;
+  document.getElementById('question-card').style.animation = 'fadeUp .45s ease both';
+
+  const btnT = document.getElementById('btn-true');
+  const btnF = document.getElementById('btn-false');
+  btnT.disabled = false; btnF.disabled = false;
+  btnT.className = 'btn-answer btn-true';
+  btnF.className = 'btn-answer btn-false';
+
+  const fb = document.getElementById('feedback');
+  fb.style.display = 'none';
+  fb.className = 'feedback';
+
+  document.getElementById('btn-next').style.display = 'none';
+}
+
+function answer(userAnswer) {
+  if (answered) return;
+  answered = true;
+  const q = questions[current];
+  const correct = userAnswer === q.answer;
+  if (correct) score++;
+
+  const btnT = document.getElementById('btn-true');
+  const btnF = document.getElementById('btn-false');
+  btnT.disabled = true; btnF.disabled = true;
+
+  if (q.answer === true) {
+    btnT.className = 'btn-answer btn-true correct';
+    if (!correct) btnF.className = 'btn-answer btn-false wrong';
+  } else {
+    btnF.className = 'btn-answer btn-false correct';
+    if (!correct) btnT.className = 'btn-answer btn-true wrong';
+  }
+
+  const fb = document.getElementById('feedback');
+  const fbH = document.getElementById('fb-header');
+  const fbT = document.getElementById('fb-text');
+
+  if (correct) {
+    fb.className = 'feedback correct-fb';
+    fbH.innerHTML = '✅ Правильно!';
+  } else {
+    fb.className = 'feedback wrong-fb';
+    fbH.innerHTML = '❌ Не совсем...';
+  }
+  fbT.textContent = q.explanation;
+  fb.style.display = 'block';
+
+  const btnNext = document.getElementById('btn-next');
+  btnNext.style.display = 'inline-block';
+  btnNext.textContent = current < questions.length - 1 ? 'Следующий вопрос →' : '🏁 Узнать результат';
+}
+
+function nextQuestion() {
+  current++;
+  if (current >= questions.length) {
+    showResult();
+  } else {
+    loadQuestion();
+  }
+}
+
+function showResult() {
+  document.getElementById('screen-question').style.display = 'none';
+  document.getElementById('screen-result').style.display = 'block';
+
+  const total = questions.length;
+  document.getElementById('score-big').textContent = `${score} / ${total}`;
+  document.getElementById('progress-fill').style.width = '100%';
+
+  let emoji, title, msg;
+  const pct = score / total;
+  if (pct === 1) {
+    emoji = '🏆'; title = 'Гений ИИ!';
+    msg = 'Все ответы правильные! Ты настоящий эксперт по искусственному интеллекту. Продолжай в том же духе!';
+    launchConfetti();
+  } else if (pct >= 0.7) {
+    emoji = '🌟'; title = 'Отличный результат!';
+    msg = 'Ты очень хорошо разбираешься в теме ИИ. Ещё немного — и станешь настоящим экспертом!';
+    launchConfetti();
+  } else if (pct >= 0.5) {
+    emoji = '👍'; title = 'Неплохо!';
+    msg = 'Хорошее начало! Ты уже знаешь половину правды об ИИ. Продолжай изучать тему — и будешь знать всё!';
+  } else {
+    emoji = '🤔'; title = 'Есть над чем подумать!';
+    msg = 'Не расстраивайся — сегодня ты узнал много нового об ИИ. Сыграй ещё раз и проверь свои знания!';
+  }
+
+  document.getElementById('result-emoji').textContent = emoji;
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-msg').textContent = msg;
+}
+
+function restartGame() {
+  document.getElementById('screen-result').style.display = 'none';
+  document.getElementById('screen-question').style.display = 'block';
+  current = 0; score = 0;
+  loadQuestion();
+}
+
+function launchConfetti() {
+  const colors = ['#1a8fe3','#5bc4f5','#90caf9','#ffffff','#0b5ea8','#b3e5fc','#42a5f5'];
+  for (let i = 0; i < 60; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti-piece';
+    c.style.cssText = `
+      left: ${Math.random()*100}vw;
+      background: ${colors[Math.floor(Math.random()*colors.length)]};
+      --cd: ${(Math.random()*2+1.5).toFixed(1)}s;
+      --cd2: ${(Math.random()*1.2).toFixed(1)}s;
+      width: ${Math.random()*10+6}px;
+      height: ${Math.random()*10+6}px;
+      border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
+    `;
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 4000);
+  }
+}
+</script>
+</body>
+</html>
